@@ -1,6 +1,7 @@
 package com.thecodewolves.abhi.mapdemo;
 
 import android.content.Context;
+import android.content.Intent;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -16,6 +17,7 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 
 /**
  * Created by Abhi on 19-05-2016.
@@ -67,10 +69,18 @@ public class ShopRecyclerViewAdapter extends RecyclerView.Adapter<ShopRecyclerVi
 
         @BindView(R.id.imageView)
         ImageView shopImage;
+        Context context;
 
         public ShopViewholder(View itemView) {
             super(itemView);
+            context = itemView.getContext();
             ButterKnife.bind(this,itemView);
+        }
+
+        @OnClick(R.id.cv)
+        public void startShopDetailActivity(CardView cv){
+            Intent intent = new Intent(context,ShopDetailActivity.class);
+            context.startActivity(intent);
         }
     }
 }

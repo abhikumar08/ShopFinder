@@ -24,7 +24,6 @@ import com.google.android.gms.location.places.ui.PlacePicker;
 import com.thecodewolves.abhi.mapdemo.Model.NearByShopsResponse;
 import com.thecodewolves.abhi.mapdemo.Model.Shop;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -77,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements
                 //fourth line adds the LocationServices API endpoint from GooglePlayServices
                 .addApi(LocationServices.API)
                 .build();
-
+        mGoogleApiClient.connect();
     }
 
     @OnClick(R.id.place_picker_button)
@@ -105,26 +104,8 @@ public class MainActivity extends AppCompatActivity implements
             //If everything went fine lets get latitude and longitude
             currentLatitude = location.getLatitude();
             currentLongitude = location.getLongitude();
-            ApiInterface apiService =
-                    retrofit.create(ApiInterface.class);
-            List<Shop> nearByShops = new ArrayList<Shop>();
 
-            Call<NearByShopsResponse> call = apiService.getNearByShops(currentLatitude+","+currentLongitude,500,"store",API_KEY);
-            call.enqueue(new Callback<NearByShopsResponse>() {
-
-                @Override
-                public void onResponse(Call<NearByShopsResponse> call, Response<NearByShopsResponse> response) {
-
-                    shops = response.body().getResults();
-                    ShopRecyclerViewAdapter shopAdapter = new ShopRecyclerViewAdapter(getApplicationContext(),shops);
-                    recyclerView.setAdapter(shopAdapter);
-                }
-
-                @Override
-                public void onFailure(Call<NearByShopsResponse> call, Throwable t) {
-                    t.printStackTrace();
-                }
-            });
+            getNearByShops(currentLatitude,currentLongitude);
             //Toast.makeText(MainActivity.this,"No of shops : "+ shops.size(),Toast.LENGTH_LONG).show();
         }
     }
@@ -145,11 +126,11 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    @Override
-    protected void onStart() {
-        mGoogleApiClient.connect();
-        super.onStart();
-    }
+//    @Override
+//    protected void onStart() {
+//        mGoogleApiClient.connect();
+//        super.onStart();
+//    }
 
     @Override
     protected void onStop() {
@@ -168,9 +149,31 @@ public class MainActivity extends AppCompatActivity implements
                 currentLongitude = place.getLatLng().longitude;
 //                String toastMsg = String.format("Place: %s", place.getName());
 //                Toast.makeText(this, toastMsg, Toast.LENGTH_LONG).show();
+                getNearByShops(currentLatitude,currentLongitude);
             }
         }
     }
 
+    public void getNearByShops(double lattitude, double longitude){
+        ApiInterface apiService =
+                retrofit.create(ApiInterface.class);
+
+        Call<NearByShopsResponse> call = apiService.getNearByShops(currentLatitude+","+currentLongitude,500,"store",API_KEY);
+        call.enqueue(new Callback<NearByShopsResponse>() {
+
+            @Override
+            public void onResponse(Call<NearByShopsResponse> call, Response<NearByShopsResponse> response) {
+
+                shops = response.body().getResults();
+                ShopRecyclerViewAdapter shopAdapter = new ShopRecyclerViewAdapter(getApplicationContext(),shops);
+                recyclerView.setAdapter(shopAdapter);
+            }
+
+            @Override
+            public void onFailure(Call<NearByShopsResponse> call, Throwable t) {
+                t.printStackTrace();
+            }
+        });
+    }
 
 }
