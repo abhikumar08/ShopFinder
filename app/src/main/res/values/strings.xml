@@ -1,4 +1,5 @@
 <resources>
-    <string name="app_name">Map Demo</string>
+    <string name="app_name">Shop Finder</string>
     <string name="title_activity_maps">Map</string>
+    <string name="API_KEY">AIzaSyBydLrTT31ku-bHQoam3oAq6U3-_F6zZr4</string>
 </resources>

@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity implements
     Retrofit retrofit;
 
     int PLACE_PICKER_REQUEST = 1;
-    private final static String API_KEY = "AIzaSyBydLrTT31ku-bHQoam3oAq6U3-_F6zZr4";
+
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
@@ -157,8 +157,8 @@ public class MainActivity extends AppCompatActivity implements
     public void getNearByShops(double lattitude, double longitude){
         ApiInterface apiService =
                 retrofit.create(ApiInterface.class);
-
-        Call<NearByShopsResponse> call = apiService.getNearByShops(currentLatitude+","+currentLongitude,500,"store",API_KEY);
+        String API_KEY = getResources().getString(R.string.API_KEY);
+        Call<NearByShopsResponse> call = apiService.getNearByShops(lattitude+","+longitude,500,"store",API_KEY);
         call.enqueue(new Callback<NearByShopsResponse>() {
 
             @Override

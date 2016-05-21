@@ -23,6 +23,10 @@ public class Shop {
     @Expose
     private  String vicinity;
 
+    @SerializedName("place_id")
+    @Expose
+    private String place_id;
+
     public Geometry getGeometry() {
         return geometry;
     }
@@ -53,5 +57,13 @@ public class Shop {
 
     public void setVicinity(String vicinity) {
         this.vicinity = vicinity;
+    }
+
+    public String getPlace_id() {
+        return place_id;
+    }
+
+    public void setPlace_id(String place_id) {
+        this.place_id = place_id;
     }
 }

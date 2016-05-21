@@ -80,6 +80,8 @@ public class ShopRecyclerViewAdapter extends RecyclerView.Adapter<ShopRecyclerVi
         @OnClick(R.id.cv)
         public void startShopDetailActivity(CardView cv){
             Intent intent = new Intent(context,ShopDetailActivity.class);
+            String placeId = shops.get(getAdapterPosition()).getPlace_id();
+            intent.putExtra("placeIdKey",placeId);
             context.startActivity(intent);
         }
     }
