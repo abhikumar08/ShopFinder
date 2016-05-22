@@ -10,6 +10,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
@@ -111,12 +112,19 @@ public class MapsActivity extends FragmentActivity implements
         mMap.addMarker(new MarkerOptions().position(current).title("Origin"));
         LatLng destination = new LatLng(destinationLat,destinationLong);
         mMap.addMarker(new MarkerOptions().position(destination).title("Destination"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(current));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(destination));
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(current,10));
+       // mMap.moveCamera(CameraUpdateFactory.newLatLng(destination));
         PolylineOptions po = new PolylineOptions();
         po.addAll(routeNodes);
         po.width(10).color(Color.BLUE);
         Polyline line = mMap.addPolyline(po);
+        CameraPosition cameraPosition = CameraPosition.builder()
+                .target(current)
+                .zoom(15)
+                .bearing(90)
+                .build();
+        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition),
+                2000, null);
     }
 
 

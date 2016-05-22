@@ -1,17 +1,24 @@
 package com.thecodewolves.abhi.mapdemo;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RatingBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.squareup.picasso.Picasso;
 import com.thecodewolves.abhi.mapdemo.Model.ShopDetails;
 import com.thecodewolves.abhi.mapdemo.Model.ShopDetailsResponse;
+
+import java.util.Calendar;
 
 import javax.inject.Inject;
 
@@ -33,31 +40,24 @@ public class ShopDetailActivity extends AppCompatActivity {
     ShopDetails shopDetails;
     private LatLng currentLatLng;
     private LatLng destinationLatLng;
+    private String phone;
+    private String website;
     @BindView(R.id.shop_name) TextView shopName;
 
     @BindView(R.id.shop_address) TextView shopAddress;
 
     @BindView(R.id.shopImage) ImageView shopImage;
 
-    @BindView(R.id.shop_contact) TextView shopContact;
 
-    @BindView(R.id.shop_website) TextView shopWebsite;
-
-    @BindView(R.id.shop_current_status) TextView shopCurrentStatus;
-
+    @BindView(R.id.call_button) ImageButton callButton;
+    @BindView(R.id.website_button) ImageButton websiteButton;
     @BindView(R.id.direction_button) ImageButton directionButton;
 
     @BindView(R.id.shop_rating)
     RatingBar shopRating;
 
-    @BindView(R.id.timingtv) TextView timingTV;
-    @BindView(R.id.monday_timing) TextView mondayTiming;
-    @BindView(R.id.tuesday_timing) TextView tuesdayTiming;
-    @BindView(R.id.wednesday_timing) TextView wednesdayTiming;
-    @BindView(R.id.thrusday_timing) TextView thrusdayTiming;
-    @BindView(R.id.friday_timing) TextView fridayTiming;
-    @BindView(R.id.saturday_timing) TextView saturdayTiming;
-    @BindView(R.id.sunday_timing) TextView sundayTiming;
+    @BindView(R.id.shop_timing) TextView shopTimingTextview;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -97,24 +97,19 @@ public class ShopDetailActivity extends AppCompatActivity {
                         shopDetails.getGeometry().getLoc().getLng());
                 shopAddress.setText(shopDetails.getVicinity());
                 try{
-                    shopContact.setText(shopDetails.getFormattedPhoneNumber());
+                    phone = shopDetails.getFormattedPhoneNumber();
+
                 }catch (NullPointerException ex){
-                    shopContact.setText("Unknown");
+                    phone = "";
                 }
 
                 try{
-                    shopWebsite.setText(shopDetails.getWebsite());
+                    website = shopDetails.getWebsite();
                 }catch (NullPointerException ex){
-                    shopContact.setText("Unknown");
+
+                    website = "";
                 }
-                try{
-                    if (shopDetails.getOpeningHours().getOpenNow())
-                        shopCurrentStatus.setText("Open Now");
-                    else
-                        shopCurrentStatus.setText("Closed Now");
-                }catch (NullPointerException ex){
-                    shopCurrentStatus.setText("Unknown");
-                }
+
                 try{
                     shopRating.setRating(shopDetails.getRating().floatValue());
                     shopRating.setEnabled(false);
@@ -124,16 +119,35 @@ public class ShopDetailActivity extends AppCompatActivity {
                 }
                 if(shopDetails.getOpeningHours()!=null){
                     if(shopDetails.getOpeningHours().getWeekdayText()!=null){
-                        mondayTiming.setText(shopDetails.getOpeningHours().getWeekdayText().get(0));
-                        tuesdayTiming.setText(shopDetails.getOpeningHours().getWeekdayText().get(1));
-                        wednesdayTiming.setText(shopDetails.getOpeningHours().getWeekdayText().get(2));
-                        thrusdayTiming.setText(shopDetails.getOpeningHours().getWeekdayText().get(3));
-                        fridayTiming.setText(shopDetails.getOpeningHours().getWeekdayText().get(4));
-                        saturdayTiming.setText(shopDetails.getOpeningHours().getWeekdayText().get(5));
-                        sundayTiming.setText(shopDetails.getOpeningHours().getWeekdayText().get(6));
+                        Calendar calendar = Calendar.getInstance();
+                        int day = calendar.get(Calendar.DAY_OF_WEEK);
+
+                        switch (day) {
+                            case Calendar.MONDAY:
+                                shopTimingTextview.setText(shopDetails.getOpeningHours().getWeekdayText().get(0));
+                                break;
+                            case Calendar.TUESDAY:
+                                shopTimingTextview.setText(shopDetails.getOpeningHours().getWeekdayText().get(1));
+                                break;
+                            case Calendar.WEDNESDAY:
+                                shopTimingTextview.setText(shopDetails.getOpeningHours().getWeekdayText().get(2));
+                                break;
+                            case Calendar.THURSDAY:
+                                shopTimingTextview.setText(shopDetails.getOpeningHours().getWeekdayText().get(3));
+                                break;
+                            case Calendar.FRIDAY :
+                                shopTimingTextview.setText(shopDetails.getOpeningHours().getWeekdayText().get(4));
+                                break;
+                            case Calendar.SATURDAY :
+                                shopTimingTextview.setText(shopDetails.getOpeningHours().getWeekdayText().get(5));
+                                break;
+                            case Calendar.SUNDAY :
+                                shopTimingTextview.setText(shopDetails.getOpeningHours().getWeekdayText().get(6));
+                                break;
+                        }
                     }
                 }else {
-                    timingTV.setText("Timing Unknown");
+                    shopTimingTextview.setText("Timing Unknown");
                 }
                 Picasso.with(ShopDetailActivity.this).load(shopDetails.getIcon()).into(shopImage);
             }
@@ -154,6 +168,34 @@ public class ShopDetailActivity extends AppCompatActivity {
         intent.putExtra("destinationLat",destinationLatLng.latitude);
         intent.putExtra("destinationLng",destinationLatLng.longitude);
         startActivity(intent);
+
+    }
+
+    @OnClick(R.id.call_button)
+    public void callTheShop(ImageButton imageButton){
+        if(phone == null){
+            Toast.makeText(ShopDetailActivity.this,"Not having a valid Phone Number!!",Toast.LENGTH_LONG).show();
+        }else{
+            Intent callIntent = new Intent(Intent.ACTION_CALL);
+            callIntent.setData(Uri.parse("tel:"+phone));
+            if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CALL_PHONE)
+                    != PackageManager.PERMISSION_GRANTED){
+                return;
+            }
+            startActivity(callIntent);
+
+        }
+
+    }
+    @OnClick(R.id.website_button)
+    public void goToWebsite(ImageButton imageButton){
+        if(website == null){
+            Toast.makeText(ShopDetailActivity.this,"Not having a valid Website!!",Toast.LENGTH_LONG).show();
+        }else{
+
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(website));
+            startActivity(browserIntent);
+        }
 
     }
 }
