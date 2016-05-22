@@ -17,7 +17,7 @@ public class MyApplication extends Application {
         super.onCreate();
         mNetComponent = DaggerNetComponent.builder()
                 .appModule(new AppModule(this))
-                .netModule(new NetModule("https://maps.googleapis.com/maps/api/place/"))
+                .netModule(new NetModule("https://maps.googleapis.com/maps/api/"))
                 .build();
     }
 

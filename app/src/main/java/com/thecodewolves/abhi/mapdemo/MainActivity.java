@@ -6,21 +6,26 @@ import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.widget.Button;
-import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.LocationSettingsResult;
+import com.google.android.gms.location.LocationSettingsStates;
+import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlacePicker;
+import com.google.android.gms.maps.model.LatLng;
 import com.thecodewolves.abhi.mapdemo.Model.NearByShopsResponse;
 import com.thecodewolves.abhi.mapdemo.Model.Shop;
 
@@ -37,8 +42,7 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 
 
-public class MainActivity extends AppCompatActivity implements
-        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener{
+public class MainActivity extends AppCompatActivity implements LocationListener{
 
     @Inject
     Retrofit retrofit;
@@ -66,17 +70,70 @@ public class MainActivity extends AppCompatActivity implements
         ButterKnife.bind(this);
 
         recyclerView.setHasFixedSize(true);
-
         LinearLayoutManager llm= new LinearLayoutManager(getApplicationContext());
         recyclerView.setLayoutManager(llm);
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                // The next two lines tell the new client that “this” current class will handle connection stuff
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                //fourth line adds the LocationServices API endpoint from GooglePlayServices
-                .addApi(LocationServices.API)
-                .build();
-        mGoogleApiClient.connect();
+
+        if(mGoogleApiClient==null){
+            mGoogleApiClient = new GoogleApiClient.Builder(this)
+                    .addApi(LocationServices.API)
+                    .build();
+            mGoogleApiClient.connect();
+
+        /***********************for shownig dialog to enable location***************/
+            LocationRequest locationRequest = LocationRequest.create();
+            locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+            LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
+                    .addLocationRequest(locationRequest);
+
+            builder.setAlwaysShow(true);
+
+            PendingResult<LocationSettingsResult> result =
+                    LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient, builder.build());
+            result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
+
+                @Override
+                public void onResult(LocationSettingsResult result) {
+
+                    final Status status = result.getStatus();
+                    final LocationSettingsStates state = result.getLocationSettingsStates();
+
+                    switch (status.getStatusCode()) {
+
+                        case LocationSettingsStatusCodes.SUCCESS:
+                            // All location settings are satisfied. The client can initialize location
+                            // requests here.
+                            if (ContextCompat.checkSelfPermission(getApplicationContext(),Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                                    && ContextCompat.checkSelfPermission(getApplicationContext(),Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                                return;
+                            }
+                            Location location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+                            currentLatitude = location.getLatitude();
+                            currentLongitude = location.getLongitude();
+
+                            getNearByShops(currentLatitude,currentLongitude);
+                            break;
+                        case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+                            // Location settings are not satisfied. But could be fixed by showing the user
+                            // a dialog.
+                            try {
+                                // Show the dialog by calling startResolutionForResult(),
+                                // and check the result in onActivityResult().
+                                status.startResolutionForResult(
+                                        MainActivity.this, 1000);
+                            } catch (IntentSender.SendIntentException e) {
+                                // Ignore the error.
+                            }
+                            break;
+                        case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+                            // Location settings are not satisfied. However, we have no way to fix the
+                            // settings so we won't show the dialog.
+                            break;
+                    }
+                }
+            });
+        /******************************************************************************************************/
+
+        }
     }
 
     @OnClick(R.id.place_picker_button)
@@ -90,47 +147,6 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-        if (ContextCompat.checkSelfPermission(getApplicationContext(),Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ContextCompat.checkSelfPermission(getApplicationContext(),Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        Location location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-
-        if (location == null) {
-            Toast.makeText(this,"Pick a location",Toast.LENGTH_LONG).show();
-        } else {
-            //If everything went fine lets get latitude and longitude
-            currentLatitude = location.getLatitude();
-            currentLongitude = location.getLongitude();
-
-            getNearByShops(currentLatitude,currentLongitude);
-            //Toast.makeText(MainActivity.this,"No of shops : "+ shops.size(),Toast.LENGTH_LONG).show();
-        }
-    }
-    @Override
-    public void onConnectionSuspended(int i) {}
-
-    @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-        if (connectionResult.hasResolution()) {
-            try {
-                connectionResult.startResolutionForResult(this, CONNECTION_FAILURE_RESOLUTION_REQUEST);
-            } catch (IntentSender.SendIntentException e) {
-                // Log the error
-                e.printStackTrace();
-            }
-        } else {
-            Log.e("Error", "Location services connection failed with code " + connectionResult.getErrorCode());
-        }
-    }
-
-//    @Override
-//    protected void onStart() {
-//        mGoogleApiClient.connect();
-//        super.onStart();
-//    }
 
     @Override
     protected void onStop() {
@@ -147,25 +163,48 @@ public class MainActivity extends AppCompatActivity implements
                 Place place = PlacePicker.getPlace(this, data);
                 currentLatitude = place.getLatLng().latitude;
                 currentLongitude = place.getLatLng().longitude;
-//                String toastMsg = String.format("Place: %s", place.getName());
-//                Toast.makeText(this, toastMsg, Toast.LENGTH_LONG).show();
                 getNearByShops(currentLatitude,currentLongitude);
+            }
+        }
+        if(requestCode == 1000){
+            if(resultCode == RESULT_OK){
+                startLocationUpdates();
             }
         }
     }
 
-    public void getNearByShops(double lattitude, double longitude){
+    protected void startLocationUpdates() {
+        if (ContextCompat.checkSelfPermission(getApplicationContext(),Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(getApplicationContext(),Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        mLocationRequest = LocationRequest.create();
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        LocationServices.FusedLocationApi.requestLocationUpdates(
+                mGoogleApiClient, mLocationRequest, this);
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        currentLatitude = location.getLatitude();
+        currentLongitude = location.getLongitude();
+
+        getNearByShops(currentLatitude,currentLongitude);
+    }
+
+    public void getNearByShops(final double lattitude, final double longitude){
         ApiInterface apiService =
                 retrofit.create(ApiInterface.class);
         String API_KEY = getResources().getString(R.string.API_KEY);
-        Call<NearByShopsResponse> call = apiService.getNearByShops(lattitude+","+longitude,500,"store",API_KEY);
+        Call<NearByShopsResponse> call = apiService.getNearByShops(lattitude+","+longitude,1000,"store",API_KEY);
         call.enqueue(new Callback<NearByShopsResponse>() {
 
             @Override
             public void onResponse(Call<NearByShopsResponse> call, Response<NearByShopsResponse> response) {
 
+                LatLng currentLatlng = new LatLng(lattitude,longitude);
                 shops = response.body().getResults();
-                ShopRecyclerViewAdapter shopAdapter = new ShopRecyclerViewAdapter(getApplicationContext(),shops);
+                ShopRecyclerViewAdapter shopAdapter = new ShopRecyclerViewAdapter(getApplicationContext(),shops,currentLatlng);
                 recyclerView.setAdapter(shopAdapter);
             }
 

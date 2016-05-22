@@ -15,5 +15,6 @@ import dagger.Component;
 public interface NetComponent {
     void inject(MainActivity mainActivity);
     void inject(ShopDetailActivity shopDetailActivity);
+    void inject(MapsActivity mapsActivity);
 
 }

@@ -1,11 +1,14 @@
 package com.thecodewolves.abhi.mapdemo;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RatingBar;
 import android.widget.TextView;
 
+import com.google.android.gms.maps.model.LatLng;
 import com.squareup.picasso.Picasso;
 import com.thecodewolves.abhi.mapdemo.Model.ShopDetails;
 import com.thecodewolves.abhi.mapdemo.Model.ShopDetailsResponse;
@@ -14,6 +17,7 @@ import javax.inject.Inject;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -27,7 +31,8 @@ public class ShopDetailActivity extends AppCompatActivity {
     private String placeId;
 
     ShopDetails shopDetails;
-
+    private LatLng currentLatLng;
+    private LatLng destinationLatLng;
     @BindView(R.id.shop_name) TextView shopName;
 
     @BindView(R.id.shop_address) TextView shopAddress;
@@ -39,6 +44,8 @@ public class ShopDetailActivity extends AppCompatActivity {
     @BindView(R.id.shop_website) TextView shopWebsite;
 
     @BindView(R.id.shop_current_status) TextView shopCurrentStatus;
+
+    @BindView(R.id.direction_button) ImageButton directionButton;
 
     @BindView(R.id.shop_rating)
     RatingBar shopRating;
@@ -61,6 +68,8 @@ public class ShopDetailActivity extends AppCompatActivity {
         Bundle extras = getIntent().getExtras();
         if(extras!=null){
             placeId = extras.getString("placeIdKey");
+            currentLatLng = new LatLng(extras.getDouble("currentLat"),
+                    extras.getDouble("currentLong"));
         }
 
         try{
@@ -84,7 +93,8 @@ public class ShopDetailActivity extends AppCompatActivity {
 
                 shopDetails=response.body().getResult();
                 shopName.setText(shopDetails.getName());
-
+                destinationLatLng = new LatLng(shopDetails.getGeometry().getLoc().getLat(),
+                        shopDetails.getGeometry().getLoc().getLng());
                 shopAddress.setText(shopDetails.getVicinity());
                 try{
                     shopContact.setText(shopDetails.getFormattedPhoneNumber());
@@ -133,5 +143,17 @@ public class ShopDetailActivity extends AppCompatActivity {
                 t.printStackTrace();
             }
         });
+    }
+
+    @OnClick(R.id.direction_button)
+    public void showDirections(ImageButton imageButton){
+
+        Intent intent = new Intent(this,MapsActivity.class);
+        intent.putExtra("currentLat",currentLatLng.latitude);
+        intent.putExtra("currentLong",currentLatLng.longitude);
+        intent.putExtra("destinationLat",destinationLatLng.latitude);
+        intent.putExtra("destinationLng",destinationLatLng.longitude);
+        startActivity(intent);
+
     }
 }

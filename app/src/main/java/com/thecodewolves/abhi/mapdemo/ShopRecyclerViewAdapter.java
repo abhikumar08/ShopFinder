@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.android.gms.maps.model.LatLng;
 import com.squareup.picasso.Picasso;
 import com.thecodewolves.abhi.mapdemo.Model.Shop;
 
@@ -26,9 +27,11 @@ public class ShopRecyclerViewAdapter extends RecyclerView.Adapter<ShopRecyclerVi
 
     List<Shop> shops;
     Context context;
-    public ShopRecyclerViewAdapter(Context context,List<Shop> shops) {
+    LatLng currentLatLng;
+    public ShopRecyclerViewAdapter(Context context,List<Shop> shops,LatLng currentLatLng) {
         this.shops = shops;
         this.context = context;
+        this.currentLatLng = currentLatLng;
     }
 
     @Override
@@ -82,6 +85,8 @@ public class ShopRecyclerViewAdapter extends RecyclerView.Adapter<ShopRecyclerVi
             Intent intent = new Intent(context,ShopDetailActivity.class);
             String placeId = shops.get(getAdapterPosition()).getPlace_id();
             intent.putExtra("placeIdKey",placeId);
+            intent.putExtra("currentLat",currentLatLng.latitude);
+            intent.putExtra("currentLong",currentLatLng.longitude);
             context.startActivity(intent);
         }
     }

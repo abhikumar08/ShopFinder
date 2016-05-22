@@ -7,23 +7,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by Abhi on 17-05-2016.
+ * Created by Abhi on 22-05-2016.
  */
-public class NearByShopsResponse {
-    @SerializedName("results")
+public class RoutesResponse {
+    @SerializedName("routes")
     @Expose
-    private List<Shop> results = new ArrayList<Shop>();
-
+    public List<Route> routes = new ArrayList<Route>();
     @SerializedName("status")
     @Expose
-    private String status;
+    public String status;
 
-    public List<Shop> getResults() {
-        return results;
+    public List<Route> getRoutes() {
+        return routes;
     }
 
-    public void setResults(List<Shop> results) {
-        this.results = results;
+    public void setRoutes(List<Route> routes) {
+        this.routes = routes;
     }
 
     public String getStatus() {

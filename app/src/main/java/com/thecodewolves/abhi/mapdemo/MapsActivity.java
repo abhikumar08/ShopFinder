@@ -1,29 +1,97 @@
 package com.thecodewolves.abhi.mapdemo;
 
-import android.support.v4.app.FragmentActivity;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
 
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.maps.android.PolyUtil;
+import com.thecodewolves.abhi.mapdemo.Model.Route;
+import com.thecodewolves.abhi.mapdemo.Model.RoutesResponse;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.inject.Inject;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+
+public class MapsActivity extends FragmentActivity implements
+        OnMapReadyCallback{
 
     private GoogleMap mMap;
+    private double currentLat;
+    private double currentLong;
+    private double destinationLat;
+    private double destinationLong;
+    SupportMapFragment mapFragment;
+    private LocationRequest mLocationRequest;
+    private GoogleApiClient mGoogleApiClient;
+
+    List<Route> routes;
+
+    @Inject
+    Retrofit retrofit;
+
+    private List<LatLng> routeNodes;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
-    }
+        ((MyApplication)getApplication()).getNetComponent().inject(this);
+        Bundle extras = getIntent().getExtras();
 
+        if(extras!=null){
+            currentLat = extras.getDouble("currentLat");
+            currentLong = extras.getDouble("currentLong");
+            destinationLat = extras.getDouble("destinationLat");
+            destinationLong = extras.getDouble("destinationLng");
+        }
+        routeNodes = new ArrayList<LatLng>();
+        ApiInterface apiService =
+                retrofit.create(ApiInterface.class);
+        String API_KEY = getResources().getString(R.string.API_KEY);
+        Call<RoutesResponse> call = apiService.getDirections(currentLat+","+currentLong,destinationLat+","+destinationLong,API_KEY);
+        call.enqueue(new Callback<RoutesResponse>() {
+            @Override
+            public void onResponse(Call<RoutesResponse> call, Response<RoutesResponse> response) {
+
+                routes = response.body().getRoutes();
+
+                for(int i=0;i<routes.size();i++){
+                    String polyline = routes.get(i).getOverviewPolyline().getPoints();
+                    routeNodes.addAll(PolyUtil.decode(polyline));
+                }
+
+                mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                        .findFragmentById(R.id.map);
+                mapFragment.getMapAsync(MapsActivity.this);
+
+            }
+
+            @Override
+            public void onFailure(Call<RoutesResponse> call, Throwable t) {
+
+            }
+        });
+
+        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+
+
+    }
 
     /**
      * Manipulates the map once available.
@@ -39,8 +107,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap = googleMap;
 
         // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+        LatLng current = new LatLng(currentLat, currentLong);
+        mMap.addMarker(new MarkerOptions().position(current).title("Origin"));
+        LatLng destination = new LatLng(destinationLat,destinationLong);
+        mMap.addMarker(new MarkerOptions().position(destination).title("Destination"));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(current));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(destination));
+        PolylineOptions po = new PolylineOptions();
+        po.addAll(routeNodes);
+        po.width(10).color(Color.BLUE);
+        Polyline line = mMap.addPolyline(po);
     }
+
+
 }
