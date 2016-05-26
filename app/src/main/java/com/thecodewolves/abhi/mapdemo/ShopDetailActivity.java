@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.ImageButton;
@@ -36,7 +38,7 @@ public class ShopDetailActivity extends AppCompatActivity {
     Retrofit retrofit;
 
     private String placeId;
-
+    private static final int MY_PERMISSION_FOR_CALLING = 200;
     ShopDetails shopDetails;
     private LatLng currentLatLng;
     private LatLng destinationLatLng;
@@ -176,12 +178,17 @@ public class ShopDetailActivity extends AppCompatActivity {
         if(phone == null){
             Toast.makeText(ShopDetailActivity.this,"Not having a valid Phone Number!!",Toast.LENGTH_LONG).show();
         }else{
-            Intent callIntent = new Intent(Intent.ACTION_CALL);
-            callIntent.setData(Uri.parse("tel:"+phone));
+
             if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CALL_PHONE)
                     != PackageManager.PERMISSION_GRANTED){
+                ActivityCompat.requestPermissions(
+                        ShopDetailActivity.this,
+                        new String[]{Manifest.permission.CALL_PHONE},
+                        MY_PERMISSION_FOR_CALLING);
                 return;
             }
+            Intent callIntent = new Intent(Intent.ACTION_CALL);
+            callIntent.setData(Uri.parse("tel:"+phone));
             startActivity(callIntent);
 
         }
@@ -197,5 +204,14 @@ public class ShopDetailActivity extends AppCompatActivity {
             startActivity(browserIntent);
         }
 
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode){
+            case MY_PERMISSION_FOR_CALLING:
+                callTheShop((ImageButton)findViewById(R.id.call_button));
+        }
     }
 }

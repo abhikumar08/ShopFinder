@@ -6,6 +6,8 @@ import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -50,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
     int PLACE_PICKER_REQUEST = 1;
 
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
+    private static final int MY_PERMISSIONS_REQUEST_LOCATION = 100;
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
     private double currentLatitude;
@@ -102,15 +105,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
                         case LocationSettingsStatusCodes.SUCCESS:
                             // All location settings are satisfied. The client can initialize location
                             // requests here.
-                            if (ContextCompat.checkSelfPermission(getApplicationContext(),Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                                    && ContextCompat.checkSelfPermission(getApplicationContext(),Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                                return;
-                            }
-                            Location location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-                            currentLatitude = location.getLatitude();
-                            currentLongitude = location.getLongitude();
-
-                            getNearByShops(currentLatitude,currentLongitude);
+                            startLocationUpdates();
                             break;
                         case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
                             // Location settings are not satisfied. But could be fixed by showing the user
@@ -118,6 +113,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
                             try {
                                 // Show the dialog by calling startResolutionForResult(),
                                 // and check the result in onActivityResult().
+                                startLocationUpdates();
                                 status.startResolutionForResult(
                                         MainActivity.this, 1000);
                             } catch (IntentSender.SendIntentException e) {
@@ -136,6 +132,14 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
         }
     }
 
+    @Override
+    protected void onStop() {
+        if (mGoogleApiClient.isConnected()) {
+            mGoogleApiClient.disconnect();
+        }
+        super.onStop();
+    }
+
     @OnClick(R.id.place_picker_button)
     public void pickPlace(Button button){
         PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
@@ -148,41 +152,27 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
     }
 
 
-    @Override
-    protected void onStop() {
-        if (mGoogleApiClient.isConnected()) {
-            mGoogleApiClient.disconnect();
-        }
-        super.onStop();
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == PLACE_PICKER_REQUEST) {
-            if (resultCode == RESULT_OK) {
-                Place place = PlacePicker.getPlace(this, data);
-                currentLatitude = place.getLatLng().latitude;
-                currentLongitude = place.getLatLng().longitude;
-                getNearByShops(currentLatitude,currentLongitude);
-            }
-        }
-        if(requestCode == 1000){
-            if(resultCode == RESULT_OK){
-                startLocationUpdates();
-            }
-        }
-    }
-
     protected void startLocationUpdates() {
         if (ContextCompat.checkSelfPermission(getApplicationContext(),Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ContextCompat.checkSelfPermission(getApplicationContext(),Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
+            ActivityCompat.requestPermissions(
+                    MainActivity.this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION},
+                    MY_PERMISSIONS_REQUEST_LOCATION);
             return;
         }
         mLocationRequest = LocationRequest.create();
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        LocationServices.FusedLocationApi.requestLocationUpdates(
-                mGoogleApiClient, mLocationRequest, this);
+        if(mGoogleApiClient.isConnected()){
+            LocationServices.FusedLocationApi.requestLocationUpdates(
+                    mGoogleApiClient, mLocationRequest, this);
+        }else{
+            mGoogleApiClient.connect();
+            LocationServices.FusedLocationApi.requestLocationUpdates(
+                    mGoogleApiClient, mLocationRequest, this);
+        }
+
     }
 
     @Override
@@ -216,4 +206,37 @@ public class MainActivity extends AppCompatActivity implements LocationListener{
         });
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        switch (requestCode){
+            case MY_PERMISSIONS_REQUEST_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    startLocationUpdates();
+
+                }
+                return;
+            }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == PLACE_PICKER_REQUEST) {
+            if (resultCode == RESULT_OK) {
+                Place place = PlacePicker.getPlace(this, data);
+                currentLatitude = place.getLatLng().latitude;
+                currentLongitude = place.getLatLng().longitude;
+                getNearByShops(currentLatitude,currentLongitude);
+            }
+        }
+        if(requestCode == 1000){
+            if(resultCode == RESULT_OK){
+                startLocationUpdates();
+            }
+        }
+    }
 }
